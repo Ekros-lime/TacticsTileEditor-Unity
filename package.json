@@ -1,0 +1,12 @@
+{
+  "name": "com.ekros-lime.tactics-tile-editor",
+  "version": "0.1.0",
+  "displayName": "Tactics Tile Editor",
+  "description": "Custom tile editor tools for grid-based tactics games in Unity.",
+  "unity": "2020.3",
+  "author": {
+    "name": "Ekros-lime",
+    "email": "",
+    "url": ""
+  }
+}
