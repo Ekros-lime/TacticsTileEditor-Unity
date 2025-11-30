@@ -14,10 +14,50 @@ namespace TacticsRPGEkros.Game
     [System.Serializable]
     public class TacticsMapData : ScriptableObject
     {
-        public int Width { set => this._width = value; get => this._width; }
-        public int Length { set => this._length = value; get => this._length; }
-        public int Height { set => this._height = value; get => this._height; }
-        public float BlockSize { set => this._blockSize = value; get => this._blockSize; }
+        public int Width 
+        { 
+            set
+            { 
+                if (value > 0)
+                {
+                    this._width = value;
+                }
+            } 
+            get => this._width; 
+        }
+        public int Length 
+        {
+            set
+            {
+                if (value > 0)
+                {
+                    this._length = value;
+                }
+            }
+            get => this._length; 
+        }
+        public int Height 
+        {
+            set 
+            {
+                if (value > 0)
+                {
+                    this._height = value;
+                }
+            }
+            get => this._height; 
+        }
+        public float BlockSize 
+        {
+            set
+            {
+                if (value > 0)
+                {
+                    this._blockSize = value;
+                }
+            }
+            get => this._blockSize;
+        }
         public MapDimension Dimension { set => this._dimension = value; get => this._dimension; }
         public List<int> BlockList { set => this._blockList = value; get => this._blockList; }
 
