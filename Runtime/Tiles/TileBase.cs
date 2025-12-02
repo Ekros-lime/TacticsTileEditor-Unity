@@ -14,10 +14,13 @@ namespace TacticsRPGEkros.Game
 
         public int MoveCost { get => this._moveCost; }
 
+        public Sprite Icon { get => this._icon; }
+        public GameObject Prefab { get => this._prefab; }
+
         [SerializeField] private string _id;
         [SerializeField] private int _moveCost;
         [SerializeField] private MapDimension _dimension;
         [SerializeField] private Sprite _icon;
-        [SerializeField] private Object _prefab;
+        [SerializeField] private GameObject _prefab;
     }
 }

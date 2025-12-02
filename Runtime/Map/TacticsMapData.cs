@@ -22,17 +22,17 @@ namespace TacticsRPGEkros.Game
         // y Axis
         public int Height { get => this._height; }
         public MapDimension Dimension { get => this._dimension; }
-        public List<TileBase> Tiles { get => this._tiles; }
+        public List<TileData> Tiles { get => this._tiles; }
 
         [SerializeField, Min(0)] private int _width;
         [SerializeField, Min(0)] private int _length;
         [SerializeField, Min(0)] private int _height;
         [SerializeField] private MapDimension _dimension;
-        [SerializeField] private List<TileBase> _tiles;
+        [SerializeField] private List<TileData> _tiles;
 
         private void OnEnable()
         {
-            if (this._tiles != null) this._tiles = new List<TileBase>();
+            if (this._tiles == null) this._tiles = new List<TileData>();
         }
 
         public void InitializeDefault()
@@ -41,7 +41,7 @@ namespace TacticsRPGEkros.Game
             this._length = 10;
             this._height = 10;
             this._dimension = MapDimension.ThreeD;
-            this._tiles = new List<TileBase>();
+            this._tiles = new List<TileData>();
         }
 
 #if UNITY_EDITOR

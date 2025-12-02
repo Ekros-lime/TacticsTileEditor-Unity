@@ -11,11 +11,18 @@ namespace TacticsRPGEkros.Game
         public List<TileBase> TileList = new List<TileBase>();
         private Dictionary<string, TileBase> Tiles;
 
-        public TileBase GetTile(string id)
+        public TileBase GetTileBase(string id)
         {
             if (Tiles == null) BuildTileDictionary();
             Tiles.TryGetValue(id, out TileBase tile);
             return tile;
+        }
+
+        public GameObject GetTilePrefab(string id)
+        {
+            TileBase tile = GetTileBase(id);
+            if (tile == null) return null;
+            return tile.Prefab;
         }
 
         private void OnEnable()
