@@ -10,23 +10,22 @@ using UnityEditor.TerrainTools;
 namespace TacticsRPGEkros.Editor{
     public class TileEditorWindow : EditorWindow
     {
+
         private TacticsMapData currentMap;
 
         private int tempWidth;
         private int tempLength;
         private int tempHeight;
-        private float tempBlockSize;
         private MapDimension tempDimension;
 
         private bool editMode = false;
-
-        [MenuItem("Tactics Tools -Ekros/Tile Editor")]
 
         private void OnEnable()
         {
             SceneView.duringSceneGui += OnSceneGUI;
         }
 
+        [MenuItem("Tactics Tools -Ekros/Tile Editor")]
         public static void Open()
         {
             EditorWindow.GetWindow<TileEditorWindow>("Tile Editor");
@@ -60,7 +59,6 @@ namespace TacticsRPGEkros.Editor{
                 tempWidth = EditorGUILayout.IntField("Width", tempWidth);
                 tempLength = EditorGUILayout.IntField("Length", tempLength);
                 tempHeight = EditorGUILayout.IntField("Height", tempHeight);
-                tempBlockSize = EditorGUILayout.FloatField("Block Size", tempBlockSize);
                 tempDimension = (MapDimension)EditorGUILayout.EnumPopup("Dimension", tempDimension);
 
                 if (GUILayout.Button("Apply", GUILayout.Height(24), GUILayout.Width(72)))
@@ -120,11 +118,7 @@ namespace TacticsRPGEkros.Editor{
 
             Undo.RecordObject(currentMap, "Apply Map Settings");
 
-            currentMap.Width = tempWidth;
-            currentMap.Length = tempLength;
-            currentMap.Height = tempHeight;
-            currentMap.BlockSize = tempBlockSize;
-            currentMap.Dimension = tempDimension;
+            currentMap.SetAttributes(tempWidth, tempLength, tempHeight, tempDimension);
 
             //保存
             EditorUtility.SetDirty(currentMap);
@@ -161,7 +155,7 @@ namespace TacticsRPGEkros.Editor{
             Selection.activeObject = currentMap;
             EditorGUIUtility.PingObject(currentMap);
         }
-
+        // 暂时废弃
         private void OnClickRebuildPreview()
         {
             if (currentMap == null)
@@ -181,7 +175,6 @@ namespace TacticsRPGEkros.Editor{
             tempWidth = currentMap.Width;
             tempLength = currentMap.Length;
             tempHeight = currentMap.Height;
-            tempBlockSize = currentMap.BlockSize;
             tempDimension = currentMap.Dimension;
         }
         // 在Hierarchy中找到MapRoot == currentMap并返回，如果没有则创建一个
@@ -243,7 +236,6 @@ namespace TacticsRPGEkros.Editor{
             int width = mapData.Width;
             int length = mapData.Length;
             int height = mapData.Height;
-            float blockSize = mapData.BlockSize;
 
             Transform tileRoot = root.tileRoot == null ? root.transform : root.tileRoot;
             for (int x = 0; x < width; x++)
@@ -256,12 +248,12 @@ namespace TacticsRPGEkros.Editor{
                         tile.name = $"Tile_({x},{y},{z})";
                         tile.transform.SetParent(tileRoot, false);
 
-                        float worldX = x * blockSize;
-                        float worldY = y * blockSize;
-                        float worldZ = z * blockSize;
+                        float worldX = x * 1;
+                        float worldY = y * 1;
+                        float worldZ = z * 1;
 
                         tile.transform.position = new Vector3(worldX, worldY, worldZ);
-                        tile.transform.localScale = new Vector3(blockSize, blockSize, blockSize);
+                        tile.transform.localScale = Vector3.one;
 
                         var collider = tile.GetComponent<Collider>();
                         if (collider != null)

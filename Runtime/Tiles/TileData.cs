@@ -4,9 +4,11 @@ using UnityEngine;
 
 namespace TacticsRPGEkros.Game
 {
-    public class BlockBase : MonoBehaviour
+    public class TileData
     {
-
+        public int x;
+        public int y;
+        public int z;
+        public string ID;
     }
 }
-
