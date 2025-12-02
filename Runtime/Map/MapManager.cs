@@ -53,6 +53,8 @@ namespace TacticsRPGEkros.Game
             }
             //TODO: 根据mapRoot.mapData 在mapRoot.tileRoot下生成地图
             //TODO: 清空MapRoot > Tiles
+			//TODO: 生成地图
+			//TODO: 优化显示
         }
 
         private void SetMapRoot()
