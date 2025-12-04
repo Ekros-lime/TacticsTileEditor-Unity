@@ -10,8 +10,11 @@ using UnityEditor.TerrainTools;
 namespace TacticsRPGEkros.Editor{
     public class TileEditorWindow : EditorWindow
     {
-
+        // for edit mode
         private TacticsMapData currentMap;
+        private TileDatabase currentTileDatabase;
+        private MapRoot editMapRoot;
+        private MapRoot mapRoot;
 
         private int tempWidth;
         private int tempLength;
@@ -19,6 +22,7 @@ namespace TacticsRPGEkros.Editor{
         private MapDimension tempDimension;
 
         private bool editMode = false;
+        private int editLevel;
 
         private void OnEnable()
         {
@@ -39,10 +43,18 @@ namespace TacticsRPGEkros.Editor{
             EditorGUILayout.BeginVertical("box");
             EditorGUILayout.LabelField("Map Control", EditorStyles.boldLabel);
 
+            // 放入map数据
             var tempMap = (TacticsMapData)EditorGUILayout.ObjectField(
                 "Current Map",
                 currentMap,
                 typeof(TacticsMapData),
+                false);
+
+            // 放入tiledatabase数据
+            var tempTileDatabase = (TileDatabase)EditorGUILayout.ObjectField(
+                "Current Tile Database",
+                currentTileDatabase,
+                typeof(TileDatabase),
                 false);
 
             if (tempMap != currentMap)
@@ -51,7 +63,15 @@ namespace TacticsRPGEkros.Editor{
                 UpdateDataFromCurrentMap();
             }
 
-            if (tempMap != null)
+            if (tempTileDatabase != currentTileDatabase)
+            {
+                currentTileDatabase = tempTileDatabase;
+            }
+
+            // in edit
+            // 隐藏MapRoot
+            // Set MapRoot_Edit
+            if (tempMap != null && tempTileDatabase != null)
             {
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField("Map Settings", EditorStyles.boldLabel);
@@ -67,19 +87,45 @@ namespace TacticsRPGEkros.Editor{
                 }
 
                 //Edit Mode
-                EditorGUILayout.BeginHorizontal();
 
                 if(GUILayout.Button("Edit", GUILayout.Height(24), GUILayout.Width(72)))
                 {
+                    // set edit level = 0 then start to edit map
+                    OnEditStart();
+                    editLevel = 0;
                     editMode = true;
                 }
 
-                if(GUILayout.Button("Save", GUILayout.Height(24), GUILayout.Width(72)))
+                if (editMode)
                 {
-                    editMode = false;
-                }
+                    EditorGUILayout.BeginHorizontal();
 
-                EditorGUILayout.EndHorizontal();
+                    if (GUILayout.Button("Upper Level", GUILayout.Height(24), GUILayout.Width(108)))
+                    {
+                        if (editLevel < tempHeight - 1) editLevel++;
+                        SceneView.RepaintAll();
+                    }
+
+                    if (GUILayout.Button("Lower Level", GUILayout.Height(24), GUILayout.Width(108)))
+                    {
+                        if(editLevel > 0) editLevel--;
+                        SceneView.RepaintAll();
+                    }
+
+                    if (GUILayout.Button("Save", GUILayout.Height(24), GUILayout.Width(72)))
+                    {
+                        OnEditEnd();
+                        editMode = false;
+                        SceneView.RepaintAll();
+                    }
+
+                    if (GUILayout.Button("Export Map Data", GUILayout.Height(24), GUILayout.Width(144)))
+                    {
+                        
+                    }
+
+                    EditorGUILayout.EndHorizontal();
+                }
 
                 EditorGUILayout.Space();
             }
@@ -107,6 +153,7 @@ namespace TacticsRPGEkros.Editor{
 
         private void OnDisable()
         {
+            OnEditEnd();
             SceneView.duringSceneGui -= OnSceneGUI; 
         }
 
@@ -168,6 +215,7 @@ namespace TacticsRPGEkros.Editor{
             BuildPreviewTiles(mapRoot);
         }
 
+
         // 把当前选中的MapData信息同步到GUI面板中显示
         private void UpdateDataFromCurrentMap()
         {
@@ -177,36 +225,45 @@ namespace TacticsRPGEkros.Editor{
             tempHeight = currentMap.Height;
             tempDimension = currentMap.Dimension;
         }
-        // 在Hierarchy中找到MapRoot == currentMap并返回，如果没有则创建一个
+        // 在Hierarchy中找到MapRoot.MapData == currentMap并返回，如果没有则创建一个
         private MapRoot GetMapRoot()
         {
-            if (currentMap == null)
-            {
-                return null;
-            }
+            //if (currentMap == null)
+            //{
+            //    return null;
+            //}
 
-            //找到所有的MapRoot
-            var roots = GameObject.FindObjectsOfType<MapRoot>();
+            ////找到所有的MapRoot
+            //var roots = GameObject.FindObjectsOfType<MapRoot>();
             
-            foreach (var root in roots)
+            //foreach (var root in roots)
+            //{
+            //    if (root.mapData == currentMap)
+            //    {
+            //        return root;
+            //    }
+            //}
+
+            if(mapRoot == null)
             {
-                if (root.mapData == currentMap)
-                {
-                    return root;
-                }
+                mapRoot = GameObject.Find("MapRoot").GetComponent<MapRoot>();
+            }
+            if(mapRoot == null)
+            {
+                GameObject rootObj = new GameObject("MapRoot");
+                var newRoot = rootObj.AddComponent<MapRoot>();
+                newRoot.mapData = currentMap;
+
+                var tileRootObj = new GameObject("Tiles");
+                tileRootObj.transform.SetParent(rootObj.transform, false);
+                newRoot.tileRoot = tileRootObj.transform;
+
+                EditorUtility.SetDirty(newRoot);
+
+                mapRoot = newRoot;
             }
 
-            GameObject rootObj = new GameObject("MapRoot_" + currentMap.name);
-            var newRoot = rootObj.AddComponent<MapRoot>();
-            newRoot.mapData = currentMap;
-
-            var tileRootObj = new GameObject("Tiles");
-            tileRootObj.transform.SetParent(rootObj.transform, false);
-            newRoot.tileRoot = tileRootObj.transform;
-
-            EditorUtility.SetDirty(newRoot);
-
-            return newRoot;
+            return mapRoot;
         }
         // 清除MapRoot>TileRoot下的GO,如果没有TileRoot则清除MapRoot下的GO
         private void ClearPreviewTiles(MapRoot root)
@@ -264,19 +321,25 @@ namespace TacticsRPGEkros.Editor{
                 }
             }
         }
-        // 画线用
+        // 画线用 editmode
         private void OnSceneGUI(SceneView view)
         {
             if (!editMode) return;
             if (currentMap == null) return;
 
+            // preprocess
+            if (editLevel >= tempHeight) editLevel = tempHeight - 1;
+            if (editLevel < 0) editLevel = 0;
+
             int tempX = currentMap.Width;
             int tempY = currentMap.Height;
             int tempZ = currentMap.Length;
 
+            // draw X
             Handles.color = Color.red;
             Vector3 from = Vector3.zero;
             Vector3 to = new Vector3(tempX, 0, 0);
+            /*
             for (int z = 0; z <= tempZ; z++)
             {
                 for(int y = 0; y <= tempY; y++)
@@ -286,7 +349,16 @@ namespace TacticsRPGEkros.Editor{
                     Handles.DrawLine(from, to);
                 }
             }
+            */
+            for (int z = 0; z <= tempZ; z++)
+            {
+                from = new Vector3(0, editLevel + 1, z);
+                to = new Vector3(tempX, editLevel + 1, z);
+                Handles.DrawLine(from, to);
+            }
+            // draw Z
             Handles.color = Color.blue;
+            /*
             for (int x = 0; x <= tempX; x++)
             {
                 for (int y = 0; y <= tempY; y++)
@@ -296,7 +368,16 @@ namespace TacticsRPGEkros.Editor{
                     Handles.DrawLine(from, to);
                 }
             }
+            */
+            for (int x = 0; x <= tempX; x++)
+            {
+                from = new Vector3(x, editLevel + 1, 0);
+                to = new Vector3(x, editLevel + 1, tempZ);
+                Handles.DrawLine(from, to);
+            }
+            // draw Y
             Handles.color = Color.green;
+            /*
             for (int x = 0; x <= tempX; x++)
             {
                 for (int z = 0; z <= tempZ; z++)
@@ -306,10 +387,65 @@ namespace TacticsRPGEkros.Editor{
                     Handles.DrawLine(from, to);
                 }
             }
+            */
+            for (int x = 0; x <= tempX; x++)
+            {
+                for (int z = 0; z <= tempZ; z++)
+                {
+                    from = new Vector3(x, 0, z);
+                    to = new Vector3(x, editLevel + 1, z);
+                    Handles.DrawLine(from, to);
+                }
+            }
 
             //Vector3 from = Vector3.zero;
             //Vector3 to = new Vector3(5, 0, 0);
             //Handles.DrawLine(from, to);
+        }
+        // 隐藏MapRoot并Set MapRoot_Edit Build Map
+        private void OnEditStart()
+        {
+            MapRoot tempRoot = GetMapRoot();
+            tempRoot.gameObject.SetActive(false);
+            GetEditMapRoot();
+            MapBuilder.BuildMap(editMapRoot, currentTileDatabase);
+        }
+        private void OnEditEnd()
+        {
+            ClearEditMapRoot();
+            if (mapRoot != null)
+            {
+                mapRoot.gameObject.SetActive(true);
+                mapRoot = null;
+            }
+        }
+
+        // 在Hierarchy创建名为MapRoot_Edit的组件并返回, set editMapRoot = newRoot
+        private MapRoot GetEditMapRoot()
+        {
+            ClearEditMapRoot();
+            GameObject rootObj = new GameObject("MapRoot_Edit");
+            var newRoot = rootObj.AddComponent<MapRoot>();
+            newRoot.mapData = currentMap;
+
+            var tileRootObj = new GameObject("Tiles");
+            tileRootObj.transform.SetParent(rootObj.transform, false);
+            newRoot.tileRoot = tileRootObj.transform;
+
+            EditorUtility.SetDirty(newRoot);
+
+            editMapRoot = newRoot;
+
+            return newRoot;
+        }
+        // Delete MapRoot_Edit
+        private void ClearEditMapRoot()
+        {
+            if (editMapRoot != null)
+            {
+                GameObject.DestroyImmediate(editMapRoot.gameObject);
+                editMapRoot = null;
+            }
         }
     }
 }

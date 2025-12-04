@@ -24,9 +24,9 @@ namespace TacticsRPGEkros.Game
         public MapDimension Dimension { get => this._dimension; }
         public List<TileData> Tiles { get => this._tiles; }
 
-        [SerializeField, Min(0)] private int _width;
-        [SerializeField, Min(0)] private int _length;
-        [SerializeField, Min(0)] private int _height;
+        [SerializeField, Min(1)] private int _width;
+        [SerializeField, Min(1)] private int _length;
+        [SerializeField, Min(1)] private int _height;
         [SerializeField] private MapDimension _dimension;
         [SerializeField] private List<TileData> _tiles;
 
