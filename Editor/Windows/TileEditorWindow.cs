@@ -6,12 +6,15 @@ using Codice.Client.BaseCommands;
 using System.Runtime.CompilerServices;
 using Codice.CM.Common;
 using UnityEditor.TerrainTools;
+using static UnityEditor.Experimental.GraphView.GraphView;
 
 namespace TacticsRPGEkros.Editor{
     public class TileEditorWindow : EditorWindow
     {
         // for edit mode
         private TacticsMapData currentMap;
+        private TacticsMapData copyMap;
+
         private TileDatabase currentTileDatabase;
         private MapRoot editMapRoot;
         private MapRoot mapRoot;
@@ -21,8 +24,14 @@ namespace TacticsRPGEkros.Editor{
         private int tempHeight;
         private MapDimension tempDimension;
 
+        // is edit mode?
         private bool editMode = false;
         private int editLevel;
+
+        // edit mode下选中的格子的tile position
+        private Vector3 currentTilePos;
+        // 当前选中的TileIndex
+        private int selectedTileIndex;
 
         private void OnEnable()
         {
@@ -98,6 +107,13 @@ namespace TacticsRPGEkros.Editor{
 
                 if (editMode)
                 {
+                    TilePanel();
+                    if (selectedTileIndex >= 0)
+                    {
+                        var tempTile = currentTileDatabase.TileList[selectedTileIndex];
+                        EditorGUILayout.LabelField("Selected Tile：", tempTile.name);
+                    }
+
                     EditorGUILayout.BeginHorizontal();
 
                     if (GUILayout.Button("Upper Level", GUILayout.Height(24), GUILayout.Width(108)))
@@ -324,6 +340,61 @@ namespace TacticsRPGEkros.Editor{
         // 画线用 editmode
         private void OnSceneGUI(SceneView view)
         {
+            GenerateGrid();
+            GenerateHover();
+        }
+        // 隐藏MapRoot并Set MapRoot_Edit Build Map
+        private void OnEditStart()
+        {
+            MapRoot tempRoot = GetMapRoot();
+            tempRoot.gameObject.SetActive(false);
+            GetEditMapRoot();
+            MapBuilder.BuildMap(editMapRoot, currentTileDatabase);
+        }
+        private void OnEditEnd()
+        {
+            ClearEditMapRoot();
+            if (mapRoot != null)
+            {
+                mapRoot.gameObject.SetActive(true);
+                mapRoot = null;
+            }
+        }
+
+        // 在Hierarchy创建名为MapRoot_Edit的组件并返回, set editMapRoot = newRoot
+        private MapRoot GetEditMapRoot()
+        {
+            ClearEditMapRoot();
+            GameObject rootObj = new GameObject("MapRoot_Edit");
+            var newRoot = rootObj.AddComponent<MapRoot>();
+
+            newRoot.mapData = currentMap;
+            // TODO: copy currentMap, do not modify currentMap when in edit mode
+            // copyMap = ScriptableObject.CreateInstance<TacticsMapData>();
+            // copyMap < currentMap; newRoot.mapData = currentMap; when edit end: currentMap < copyMap
+
+            var tileRootObj = new GameObject("Tiles");
+            tileRootObj.transform.SetParent(rootObj.transform, false);
+            newRoot.tileRoot = tileRootObj.transform;
+
+            EditorUtility.SetDirty(newRoot);
+
+            editMapRoot = newRoot;
+
+            return newRoot;
+        }
+        // Delete MapRoot_Edit
+        private void ClearEditMapRoot()
+        {
+            if (editMapRoot != null)
+            {
+                GameObject.DestroyImmediate(editMapRoot.gameObject);
+                editMapRoot = null;
+            }
+        }
+        // Generate Grid
+        private void GenerateGrid()
+        {
             if (!editMode) return;
             if (currentMap == null) return;
 
@@ -402,50 +473,129 @@ namespace TacticsRPGEkros.Editor{
             //Vector3 to = new Vector3(5, 0, 0);
             //Handles.DrawLine(from, to);
         }
-        // 隐藏MapRoot并Set MapRoot_Edit Build Map
-        private void OnEditStart()
+        // Ray & Hover
+        private void GenerateHover()
         {
-            MapRoot tempRoot = GetMapRoot();
-            tempRoot.gameObject.SetActive(false);
-            GetEditMapRoot();
-            MapBuilder.BuildMap(editMapRoot, currentTileDatabase);
-        }
-        private void OnEditEnd()
-        {
-            ClearEditMapRoot();
-            if (mapRoot != null)
+            if (!editMode) return;
+            if (currentMap == null) return;
+
+            if (Event.current.type == EventType.MouseMove ||
+                Event.current.type == EventType.MouseDrag ||
+                Event.current.type == EventType.Layout)
             {
-                mapRoot.gameObject.SetActive(true);
-                mapRoot = null;
+                SceneView.RepaintAll();
             }
-        }
 
-        // 在Hierarchy创建名为MapRoot_Edit的组件并返回, set editMapRoot = newRoot
-        private MapRoot GetEditMapRoot()
-        {
-            ClearEditMapRoot();
-            GameObject rootObj = new GameObject("MapRoot_Edit");
-            var newRoot = rootObj.AddComponent<MapRoot>();
-            newRoot.mapData = currentMap;
+            Event e = Event.current;
+            Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
+            int y = editLevel + 1;
 
-            var tileRootObj = new GameObject("Tiles");
-            tileRootObj.transform.SetParent(rootObj.transform, false);
-            newRoot.tileRoot = tileRootObj.transform;
+            if (Mathf.Abs(ray.direction.y) < 0.0001f) return;
 
-            EditorUtility.SetDirty(newRoot);
+            float t = (y - ray.origin.y) / ray.direction.y;
+            if (t < 0) return;
 
-            editMapRoot = newRoot;
+            Vector3 hitPos = ray.origin + ray.direction * t;
 
-            return newRoot;
-        }
-        // Delete MapRoot_Edit
-        private void ClearEditMapRoot()
-        {
-            if (editMapRoot != null)
+            int x = Mathf.FloorToInt(hitPos.x);
+            int z = Mathf.FloorToInt(hitPos.z);
+
+            // Debug.Log($"{x},{z}");
+
+            //hight light (in range)
+            if(x >= 0 && x < tempWidth && z >= 0 && z < tempLength)
             {
-                GameObject.DestroyImmediate(editMapRoot.gameObject);
-                editMapRoot = null;
+                Vector3 p0 = new Vector3(x, y, z);
+                Vector3 p1 = new Vector3(x, y, z + 1);
+                Vector3 p2 = new Vector3(x + 1, y, z + 1);
+                Vector3 p3 = new Vector3(x + 1, y, z);
+
+                currentTilePos = p0;
+
+                Handles.DrawSolidRectangleWithOutline(
+                    new Vector3[] { p0, p1, p2, p3 },
+                    new Color(1f, 0f, 1f, 0.25f),
+                    Color.yellow
+                );
+
+                // mouse click event
+                if (e.type == EventType.MouseDown)
+                {
+                    // left
+                    if (e.button == 0)
+                    {
+                        for (int i = 0; i < editMapRoot.mapData.Tiles.Count; i++)
+                        {
+                            TileData tempTileData = editMapRoot.mapData.Tiles[i];
+                            if (tempTileData.x == x && tempTileData.y == y - 1 && tempTileData.z == z)
+                            {
+                                // 找到xyz和当前位置一样的tile
+                                editMapRoot.mapData.Tiles.RemoveAt(i);
+                            }
+                        }
+                        editMapRoot.mapData.Tiles.Add(new TileData(x, y - 1, z, currentTileDatabase.TileList[selectedTileIndex].ID));
+                        // TODO: 后面再优化
+                        OnEditStart();
+                        // Debug.Log($"{x},{y},{z}");
+                    }
+                    // right
+                    else if (e.button == 1)
+                    {
+                        for (int i = 0; i < editMapRoot.mapData.Tiles.Count; i++)
+                        {
+                            TileData tempTileData = editMapRoot.mapData.Tiles[i];
+                            if (tempTileData.x == x && tempTileData.y == y - 1 && tempTileData.z == z)
+                            {
+                                // 找到xyz和当前位置一样的tile
+                                editMapRoot.mapData.Tiles.RemoveAt(i);
+                            }
+                        }
+                        // TODO: 后面再优化
+                        OnEditStart();
+                        // Debug.Log($"{x},{y},{z}");
+                    }
+                }
             }
+
+
+        }
+        // Tiles select panel
+        private void TilePanel()
+        {
+            Vector2 tileListScroll = new Vector2(48, 24);
+            EditorGUILayout.LabelField("Tile List:", EditorStyles.boldLabel);
+
+            tileListScroll = EditorGUILayout.BeginScrollView(tileListScroll, GUILayout.Height(200));
+
+            for (int i = 0; i < currentTileDatabase.TileList.Count; i++)
+            {
+                TileBase tile = currentTileDatabase.TileList[i];
+
+                Rect rect = EditorGUILayout.BeginHorizontal();
+
+                // 判断是否选中
+                bool isSelected = (i == selectedTileIndex);
+
+                // 背景高亮
+                if (isSelected)
+                {
+                    EditorGUI.DrawRect(rect, new Color(0.3f, 0.5f, 1f, 0.3f));
+                }
+
+                // 图标
+                // GUILayout.Label(iconTex, GUILayout.Width(40), GUILayout.Height(40));
+
+                // 名字按钮
+                if (GUILayout.Button(tile.DisplayName, GUILayout.Height(24)))
+                {
+                    selectedTileIndex = i;
+                    Repaint();
+                }
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndScrollView();
         }
     }
 }
