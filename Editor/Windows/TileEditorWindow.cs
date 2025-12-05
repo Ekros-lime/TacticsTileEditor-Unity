@@ -9,6 +9,8 @@ using UnityEditor.TerrainTools;
 using static UnityEditor.Experimental.GraphView.GraphView;
 
 namespace TacticsRPGEkros.Editor{
+
+    // TODO: TileDatabase null检测
     public class TileEditorWindow : EditorWindow
     {
         // for edit mode
@@ -128,7 +130,7 @@ namespace TacticsRPGEkros.Editor{
                         SceneView.RepaintAll();
                     }
 
-                    if (GUILayout.Button("Save", GUILayout.Height(24), GUILayout.Width(72)))
+                    if (GUILayout.Button("Save？暂时没用", GUILayout.Height(24), GUILayout.Width(72)))
                     {
                         OnEditEnd();
                         editMode = false;
@@ -251,7 +253,7 @@ namespace TacticsRPGEkros.Editor{
 
             ////找到所有的MapRoot
             //var roots = GameObject.FindObjectsOfType<MapRoot>();
-            
+
             //foreach (var root in roots)
             //{
             //    if (root.mapData == currentMap)
@@ -260,24 +262,42 @@ namespace TacticsRPGEkros.Editor{
             //    }
             //}
 
-            if(mapRoot == null)
+            if (mapRoot == null)
             {
-                mapRoot = GameObject.Find("MapRoot").GetComponent<MapRoot>();
+                var mapRootGO = GameObject.Find("MapRoot");
+                if (mapRootGO != null)
+                {
+                    mapRoot = mapRootGO.GetComponent<MapRoot>();
+                }
+                else
+                {
+                    GameObject rootObj = new GameObject("MapRoot");
+                    var newRoot = rootObj.AddComponent<MapRoot>();
+                    newRoot.mapData = currentMap;
+
+                    var tileRootObj = new GameObject("Tiles");
+                    tileRootObj.transform.SetParent(rootObj.transform, false);
+                    newRoot.tileRoot = tileRootObj.transform;
+
+                    EditorUtility.SetDirty(newRoot);
+
+                    mapRoot = newRoot;
+                }
             }
-            if(mapRoot == null)
-            {
-                GameObject rootObj = new GameObject("MapRoot");
-                var newRoot = rootObj.AddComponent<MapRoot>();
-                newRoot.mapData = currentMap;
+            //if(mapRoot == null)
+            //{
+            //    GameObject rootObj = new GameObject("MapRoot");
+            //    var newRoot = rootObj.AddComponent<MapRoot>();
+            //    newRoot.mapData = currentMap;
 
-                var tileRootObj = new GameObject("Tiles");
-                tileRootObj.transform.SetParent(rootObj.transform, false);
-                newRoot.tileRoot = tileRootObj.transform;
+            //    var tileRootObj = new GameObject("Tiles");
+            //    tileRootObj.transform.SetParent(rootObj.transform, false);
+            //    newRoot.tileRoot = tileRootObj.transform;
 
-                EditorUtility.SetDirty(newRoot);
+            //    EditorUtility.SetDirty(newRoot);
 
-                mapRoot = newRoot;
-            }
+            //    mapRoot = newRoot;
+            //}
 
             return mapRoot;
         }
@@ -524,6 +544,7 @@ namespace TacticsRPGEkros.Editor{
                     // left
                     if (e.button == 0)
                     {
+                        // TODO：mapData.Tiles null 检测
                         for (int i = 0; i < editMapRoot.mapData.Tiles.Count; i++)
                         {
                             TileData tempTileData = editMapRoot.mapData.Tiles[i];

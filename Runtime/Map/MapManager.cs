@@ -32,11 +32,11 @@ namespace TacticsRPGEkros.Game
             // TacticsMapData tempMapData = ScriptableObject.CreateInstance<TacticsMapData>();
             SetMapRoot();
             Debug.Log($"{mapRoot.name}, {mapRoot.transform.position}");
-            mapRoot.mapData.Tiles.Clear();
-            TileData g1 = new TileData(0, 0, 0, "0");
-            TileData s1 = new TileData(1, 0, 1, "1");
-            mapRoot.mapData.Tiles.Add(g1);
-            mapRoot.mapData.Tiles.Add(s1);
+            //mapRoot.mapData.Tiles.Clear();
+            //TileData g1 = new TileData(0, 0, 0, "0");
+            //TileData s1 = new TileData(1, 0, 1, "1");
+            //mapRoot.mapData.Tiles.Add(g1);
+            //mapRoot.mapData.Tiles.Add(s1);
 
             //BuildMapFromMapRoot();
             MapBuilder.BuildMap(mapRoot, tileDatabase);
