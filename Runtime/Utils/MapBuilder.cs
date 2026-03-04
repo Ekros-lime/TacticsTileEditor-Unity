@@ -36,10 +36,17 @@ namespace TacticsRPGEkros.Game
                 Vector3 tempPos = new Vector3(tile.x, tile.y, tile.z);
                 tempPos = TileCoordUtil.TilePivotToWorld(tempPos);
                 // Get Prefab by ID
-                GameObject tempGO = GameObject.Instantiate(tileDatabase.GetTilePrefab(tile.ID));
-                tempGO.transform.SetParent(mapRoot.tileRoot, false);
-                tempGO.transform.position = tempPos;
-                tempGO.transform.localScale = Vector3.one;
+                if (tileDatabase.GetTileBase(tile.ID) != null)
+                {
+                    GameObject tempGO = GameObject.Instantiate(tileDatabase.GetTilePrefab(tile.ID));
+                    tempGO.transform.SetParent(mapRoot.tileRoot, false);
+                    tempGO.transform.position = tempPos;
+                    tempGO.transform.localScale = Vector3.one;
+                }
+                else
+                {
+                    Debug.LogWarning($"ID: {tile.ID} tile is not exist");
+                }
             }
             //TODO: ”≈ªØœ‘ æ
         }
